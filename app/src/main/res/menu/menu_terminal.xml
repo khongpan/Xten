@@ -1,0 +1,40 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".TerminalActivity">
+
+    <item
+        android:id="@+id/action_connect"
+        android:title="@string/action_connect"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_disconnect"
+        android:title="@string/action_disconnect"
+        android:visible="false"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_crlf"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/action_crlf"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/RemoteDevice"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/Remote_Device"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/MqttConnect"
+        android:checkable="true"
+        android:checked="false"
+        android:title="@string/MqttConnect"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/MqttSubscribe"
+        android:title="@string/MqttSubscribe"
+        app:showAsAction="never" />
+</menu>
