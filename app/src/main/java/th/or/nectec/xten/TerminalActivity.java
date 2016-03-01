@@ -76,9 +76,9 @@ public class TerminalActivity extends AppCompatActivity
         //-----------------MQTT---------------------
         String clientId = MqttClient.generateClientId();
         MemoryPersistence persistence = new MemoryPersistence();
-        //String broker = "tcp://m10.cloudmqtt.com:14991";
+        String broker = "tcp://m10.cloudmqtt.com:14991";
         //String broker = "tcp://iot.eclipse.org:1883";
-        String broker = "tcp://broker.mqttdashboard.com:1883";
+        //String broker = "tcp://broker.mqttdashboard.com:1883";
         client = new MqttAndroidClient(this.getApplicationContext(), broker, clientId, persistence);
 
 
@@ -151,8 +151,8 @@ public class TerminalActivity extends AppCompatActivity
                 mqttDisconnect();
             }
             return true;
-        } else if (id == R.id.MqttSubscribe) {
-            mqttSubscribe();
+        } else if (id == R.id.Options) {
+            //mqttSubscribe();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -374,8 +374,11 @@ public class TerminalActivity extends AppCompatActivity
             token.setActionCallback(new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
+
                     Toast toastConnection = Toast.makeText(getApplicationContext(), "Connection Success", Toast.LENGTH_LONG);
                     toastConnection.show();
+
+                    mqttSubscribe();
 
                 }
 
