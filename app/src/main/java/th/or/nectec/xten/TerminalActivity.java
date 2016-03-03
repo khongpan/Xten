@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -20,6 +21,7 @@ import com.afollestad.materialdialogs.Theme;
 import com.macroyau.blue2serial.BluetoothDeviceListDialog;
 import com.macroyau.blue2serial.BluetoothSerial;
 import com.macroyau.blue2serial.BluetoothSerialListener;
+
 import th.or.nectec.xten.R;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
@@ -48,12 +50,14 @@ public class TerminalActivity extends AppCompatActivity
 
     MqttAndroidClient client;
 
-    String btRxBuff="";
+    String btRxBuff = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_terminal);
         // Find UI views and set listeners
+        Log.i("Activity LifeCycle","onCreate");
         svTerminal = (ScrollView) findViewById(R.id.terminal);
         tvTerminal = (TextView) findViewById(R.id.tv_terminal);
         etSend = (EditText) findViewById(R.id.et_send);
@@ -76,9 +80,10 @@ public class TerminalActivity extends AppCompatActivity
         //-----------------MQTT---------------------
         String clientId = MqttClient.generateClientId();
         MemoryPersistence persistence = new MemoryPersistence();
-        String broker = "tcp://m10.cloudmqtt.com:14991";
+        //String broker = "tcp://m10.cloudmqtt.com:14991";
         //String broker = "tcp://iot.eclipse.org:1883";
         //String broker = "tcp://broker.mqttdashboard.com:1883";
+        String broker = "tcp://192.168.0.2:1883";
         client = new MqttAndroidClient(this.getApplicationContext(), broker, clientId, persistence);
 
 
@@ -87,14 +92,17 @@ public class TerminalActivity extends AppCompatActivity
     @Override
     protected void onStart() {
         super.onStart();
+        Log.i("Activity LifeCycle", "onStart");
         // Check Bluetooth availability on the device and set up the Bluetooth adapter
-        bluetoothSerial.setup();
+        if (bluetoothSerial.getConnectedDeviceAddress() == null) {
+            bluetoothSerial.setup();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
+        Log.i("Activity LifeCycle", "onResume");
         // Open a Bluetooth serial port and get ready to establish a connection
         if (bluetoothSerial.checkBluetooth() && bluetoothSerial.isBluetoothEnabled()) {
             if (!bluetoothSerial.isConnected()) {
@@ -107,7 +115,14 @@ public class TerminalActivity extends AppCompatActivity
     protected void onStop() {
         super.onStop();
         // Disconnect from the remote device and close the serial port
-        bluetoothSerial.stop();
+        //bluetoothSerial.stop();
+        Log.i("Activity LifeCycle","onStop");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.i("Activity LifeCycle","onDestroy");
     }
 
     @Override
@@ -274,12 +289,12 @@ public class TerminalActivity extends AppCompatActivity
         // Print the incoming message on the terminal screen
         String sub_string[];
 
-        if (message.indexOf('\n')>=0) {
-            btRxBuff+=message;
+        if (message.indexOf('\n') >= 0) {
+            btRxBuff += message;
             mqttPubish(btRxBuff);
-            btRxBuff="";
+            btRxBuff = "";
         } else {
-            btRxBuff+=message;
+            btRxBuff += message;
         }
 
         //tvTerminal.append(getString(R.string.terminal_message_template, bluetoothSerial.getConnectedDeviceName(), message));
@@ -346,7 +361,7 @@ public class TerminalActivity extends AppCompatActivity
                     //tvTerminal.append(getString(R.string.terminal_message_template,"",payload));
 
                     //tvTerminal.append(payload);
-                    tvTerminal.append(getString(R.string.terminal_message_template,"FromMqt->", payload));
+                    tvTerminal.append(getString(R.string.terminal_message_template, "FromMqt->", payload));
                     svTerminal.post(scrollTerminalToBottom);
 
                     bluetoothSerial.write(payload, false);
@@ -430,6 +445,9 @@ public class TerminalActivity extends AppCompatActivity
 
     private void mqttPubish(String TextMessage) {
         String topicpubish;
+        if (!client.isConnected()) {
+            return;
+        }
         if (RemoteDevice == true) {
             topicpubish = "fromdevice";
 
@@ -437,7 +455,7 @@ public class TerminalActivity extends AppCompatActivity
             topicpubish = "todevice";
         }
 
-        tvTerminal.append(getString(R.string.terminal_message_template, "toMq->" , TextMessage));
+        tvTerminal.append(getString(R.string.terminal_message_template, "toMq->", TextMessage));
         svTerminal.post(scrollTerminalToBottom);
 
         //String topic = txtTopicText.getText().toString();
