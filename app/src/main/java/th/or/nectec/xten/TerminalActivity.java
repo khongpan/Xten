@@ -15,14 +15,13 @@ import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.net.ConnectivityManager;
 
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.afollestad.materialdialogs.Theme;
 import com.macroyau.blue2serial.BluetoothDeviceListDialog;
 import com.macroyau.blue2serial.BluetoothSerial;
 import com.macroyau.blue2serial.BluetoothSerialListener;
-
-import th.or.nectec.xten.R;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -35,6 +34,8 @@ import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class TerminalActivity extends AppCompatActivity
         implements BluetoothSerialListener, BluetoothDeviceListDialog.OnDeviceSelectedListener {
@@ -49,7 +50,6 @@ public class TerminalActivity extends AppCompatActivity
     private boolean MqttConnect = false;
 
     MqttAndroidClient client;
-
     String btRxBuff = "";
 
     @Override
@@ -57,7 +57,7 @@ public class TerminalActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_terminal);
         // Find UI views and set listeners
-        Log.i("Activity LifeCycle","onCreate");
+        Log.i("Activity LifeCycle", "onCreate");
         svTerminal = (ScrollView) findViewById(R.id.terminal);
         tvTerminal = (TextView) findViewById(R.id.tv_terminal);
         etSend = (EditText) findViewById(R.id.et_send);
@@ -80,19 +80,33 @@ public class TerminalActivity extends AppCompatActivity
         //-----------------MQTT---------------------
         String clientId = MqttClient.generateClientId();
         MemoryPersistence persistence = new MemoryPersistence();
-        //String broker = "tcp://m10.cloudmqtt.com:14991";
+        String broker = "tcp://m10.cloudmqtt.com:14991";
         //String broker = "tcp://iot.eclipse.org:1883";
         //String broker = "tcp://broker.mqttdashboard.com:1883";
-        String broker = "tcp://192.168.0.2:1883";
+        //String broker = "tcp://192.168.0.3:1883";
         client = new MqttAndroidClient(this.getApplicationContext(), broker, clientId, persistence);
 
-
+        /**  Timer timer = new Timer();
+         timer.scheduleAtFixedRate(new TimerTask() {
+        @Override public void run() {
+        //boolean internetConnected = isInternetOn();
+        isInternetOn();
+        }
+        }, 30000, 15000); */
+        //-------------------timer---------
+        Timer myTimer;
+        myTimer = new Timer();
+        myTimer.schedule(new TimerTask() {
+            public void run() {
+                timerTick();
+            }
+        }, 0, 10000);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        Log.i("Activity LifeCycle", "onStart");
+        Log.i("LifeCycle", "onStart");
         // Check Bluetooth availability on the device and set up the Bluetooth adapter
         if (bluetoothSerial.getConnectedDeviceAddress() == null) {
             bluetoothSerial.setup();
@@ -102,7 +116,7 @@ public class TerminalActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        Log.i("Activity LifeCycle", "onResume");
+        Log.i("LifeCycle", "onResume");
         // Open a Bluetooth serial port and get ready to establish a connection
         if (bluetoothSerial.checkBluetooth() && bluetoothSerial.isBluetoothEnabled()) {
             if (!bluetoothSerial.isConnected()) {
@@ -111,18 +125,26 @@ public class TerminalActivity extends AppCompatActivity
         }
     }
 
+
+    /* public void stoptimertask(View v) {
+         //stop the timer, if it's not already null
+         if (timer != null) {
+             timer.cancel();
+             timer = null;
+         }
+     }*/
     @Override
     protected void onStop() {
         super.onStop();
         // Disconnect from the remote device and close the serial port
         //bluetoothSerial.stop();
-        Log.i("Activity LifeCycle","onStop");
+        Log.i("LifeCycle", "onStop");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.i("Activity LifeCycle","onDestroy");
+        Log.i("LifeCycle", "onDestroy");
     }
 
     @Override
@@ -138,7 +160,7 @@ public class TerminalActivity extends AppCompatActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
+        // automatically handle clicks on the Home/Up button,  so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         //noinspection SimplifiableIfStatement
@@ -168,6 +190,7 @@ public class TerminalActivity extends AppCompatActivity
             return true;
         } else if (id == R.id.Options) {
             //mqttSubscribe();
+            //isInternetOn();
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -373,6 +396,8 @@ public class TerminalActivity extends AppCompatActivity
 
                 public void connectionLost(Throwable arg0) {
                     // TODO Auto-generated method stub
+                    Toast toastConnection = Toast.makeText(getApplicationContext(), "Connection Lost", Toast.LENGTH_LONG);
+                    toastConnection.show();
                 }
             });
 
@@ -392,9 +417,7 @@ public class TerminalActivity extends AppCompatActivity
 
                     Toast toastConnection = Toast.makeText(getApplicationContext(), "Connection Success", Toast.LENGTH_LONG);
                     toastConnection.show();
-
                     mqttSubscribe();
-
                 }
 
                 @Override
@@ -490,4 +513,43 @@ public class TerminalActivity extends AppCompatActivity
             e.printStackTrace();
         }
     }
+
+    public void isInternetOn() {
+
+        // get Connectivity Manager object to check connection
+        ConnectivityManager connec =
+                (ConnectivityManager) getSystemService(getBaseContext().CONNECTIVITY_SERVICE);
+
+        // Check for network connections
+        if (connec.getNetworkInfo(0).getState() == android.net.NetworkInfo.State.CONNECTED ||
+                connec.getNetworkInfo(0).getState() == android.net.NetworkInfo.State.CONNECTING ||
+                connec.getNetworkInfo(1).getState() == android.net.NetworkInfo.State.CONNECTING ||
+                connec.getNetworkInfo(1).getState() == android.net.NetworkInfo.State.CONNECTED) {
+            // if connected with internet
+            Toast.makeText(this, "Network Connected ", Toast.LENGTH_LONG).show();
+            if(!client.isConnected()){
+                mqttConnect();
+            }
+
+        } else if (
+                connec.getNetworkInfo(0).getState() == android.net.NetworkInfo.State.DISCONNECTED ||
+                        connec.getNetworkInfo(1).getState() == android.net.NetworkInfo.State.DISCONNECTED) {
+            Toast.makeText(this, " Network not Connected ", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void timerTick() {
+        this.runOnUiThread(doTask);
+    }
+
+    private Runnable doTask = new Runnable() {
+        public void run() {
+            // TODO Auto-generated method stub
+            if (MqttConnect == true&!client.isConnected()){
+                isInternetOn();
+            }
+        }
+    };
 }
+
+
